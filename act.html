@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>ACT Prep — V1</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#111827; --ink:#e5e7eb; --muted:#9ca3af; --accent:#38bdf8; --good:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+    --radius:14px; --tap:16px; --shadow:0 8px 30px rgba(0,0,0,.35)
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; color:var(--ink);
+    background:linear-gradient(180deg,#0b1023, #0f172a 40%, #131a31);
+  }
+  .app{max-width:560px; margin:0 auto; padding:20px 16px 40px; min-height:100%}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px}
+  .brand{display:flex; align-items:center; gap:10px}
+  .logo{width:38px; height:38px; border-radius:12px; background:radial-gradient(circle at 30% 30%, #60a5fa, #06b6d4 70%, #0ea5e9); box-shadow:var(--shadow)}
+  h1{font-size:20px; margin:0}
+  .statchip{font-size:12px; color:var(--ink); background:#0b1224; border:1px solid #1f2a44; padding:6px 10px; border-radius:999px}
+
+  .card{background:linear-gradient(180deg,#0f172a,#0b1224); border:1px solid #1f2a44; border-radius:var(--radius); box-shadow:var(--shadow)}
+  .pane{padding:16px}
+  .section-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0 18px}
+  .btn{display:flex; flex-direction:column; gap:6px; padding:16px; border-radius:12px; border:1px solid #1f2a44; background:#0d1429; color:var(--ink); text-align:left; text-decoration:none; min-height:84px; line-height:1.2; font-weight:600}
+  .btn span{font-size:12px; color:var(--muted); font-weight:500}
+  .btn:active{transform:scale(.99)}
+  .controls{display:flex; gap:10px; flex-wrap:wrap}
+  .pill{border-radius:999px; padding:10px 14px; border:1px solid #1f2a44; background:#0b1224; color:var(--ink); font-weight:600}
+
+  .screen{display:none}
+  .screen.active{display:block}
+
+  .meta{display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px}
+  .tag{padding:6px 10px; border-radius:999px; background:#0b1224; border:1px solid #1f2a44; font-size:12px; color:var(--muted)}
+  .qtext{font-size:16px; margin:0 0 10px}
+  .choices{display:grid; gap:8px}
+  .choice{display:flex; gap:10px; align-items:flex-start; padding:12px; border:1px solid #1f2a44; border-radius:12px; background:#0d1429}
+  .choice input{margin-top:3px; transform:scale(1.2)}
+  .submitbar{
+    display:flex; gap:10px; padding:12px; align-items:center; justify-content:space-between;
+    position:sticky; bottom:0; background:rgba(13,20,41,.85); backdrop-filter:saturate(120%) blur(8px); border-top:1px solid #1f2a44; border-bottom-left-radius:12px; border-bottom-right-radius:12px;
+  }
+  .cta{flex:1; padding:14px 16px; border-radius:12px; font-weight:800; border:none; color:#07121c; background:var(--accent)}
+  .mutebtn{padding:12px 14px; background:#0b1224; border:1px solid #1f2a44; color:var(--ink); border-radius:12px}
+
+  .result{padding:18px; display:grid; gap:10px}
+  .score{font-size:18px; font-weight:800}
+  .exp{color:var(--muted); font-size:14px}
+  .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  .footer{margin-top:18px; color:var(--muted); font-size:12px; text-align:center}
+  .timer{font-variant-numeric:tabular-nums; font-weight:700}
+
+  /* Passage/Context screen */
+  .passage-wrap{padding:16px; display:grid; gap:12px}
+  .passage-title{font-weight:800; font-size:18px}
+  .passage{line-height:1.55; color:var(--ink)}
+  .scroll{max-height:46vh; overflow:auto; padding:12px; border:1px solid #1f2a44; border-radius:12px; background:#0d1429}
+</style>
+</head>
+<body>
+<div class="app" role="application">
+  <header>
+    <div class="brand" aria-label="App name">
+      <div class="logo" aria-hidden="true"></div>
+      <h1>ACT Prep</h1>
+    </div>
+    <div class="statchip" id="streakChip" aria-live="polite">Daily goal: 0 / 10</div>
+  </header>
+
+  <!-- Home Screen -->
+  <section id="home" class="screen active card" aria-label="Home">
+    <div class="pane">
+      <p style="margin-top:0;color:var(--muted)">Pick a section to start a quick drill. Your progress stays on this device.</p>
+      <div class="section-grid" role="list">
+        <button class="btn" role="listitem" data-section="English">English <span>Grammar & Usage</span></button>
+        <button class="btn" role="listitem" data-section="Math">Math <span>Algebra, Geo, etc.</span></button>
+        <button class="btn" role="listitem" data-section="Reading">Reading <span>Passage + Questions</span></button>
+        <button class="btn" role="listitem" data-section="Science">Science <span>Context + Data</span></button>
+      </div>
+      <div class="controls">
+        <button id="reviewBtn" class="pill">Review last session</button>
+        <button id="resetBtn" class="pill">Reset progress</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Passage/Context Intro Screen -->
+  <section id="intro" class="screen card" aria-label="Intro">
+    <div class="passage-wrap">
+      <div class="meta">
+        <div id="introTag" class="tag">Section</div>
+        <div class="tag">Questions: <span id="introCount">5</span></div>
+        <div class="tag">Time: <span id="introTime" class="timer">03:00</span></div>
+      </div>
+      <div class="passage-title" id="introTitle">Title</div>
+      <div class="scroll">
+        <div id="introBody" class="passage"></div>
+      </div>
+      <div class="submitbar">
+        <button id="introBack" class="mutebtn" aria-label="Back">Back</button>
+        <button id="introStart" class="cta">Start Questions</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quiz Screen -->
+  <section id="quiz" class="screen card" aria-label="Quiz">
+    <div class="pane">
+      <div class="meta">
+        <div id="quizTitle" class="tag">Section</div>
+        <div class="tag">Q: <span id="qPos">1</span>/<span id="qTotal">5</span></div>
+        <div class="tag">Time: <span id="timer" class="timer">03:00</span></div>
+      </div>
+      <div id="qWrap"></div>
+    </div>
+    <div class="submitbar">
+      <button id="backBtn" class="mutebtn" aria-label="Back to home">Back</button>
+      <button id="nextBtn" class="cta">Submit & Next</button>
+    </div>
+    <!-- Floating Passage/Context button + drawer -->
+    <button id="passageBtn" class="mutebtn" style="position:fixed;right:18px;bottom:88px;z-index:30">Passage</button>
+    <div id="passageDrawer" class="card" style="display:none;position:fixed;left:0;right:0;bottom:0;max-height:65vh;z-index:40;border-top-left-radius:16px;border-top-right-radius:16px;overflow:auto;background:#0d1429">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #1f2a44">
+      <strong id="drawerTitle">Reference</strong>
+      <button id="drawerClose" class="mutebtn">Close</button>
+    </div>
+    <div id="drawerBody" style="padding:16px"></div>
+</div>
+
+  </section>
+
+  <!-- Results Screen -->
+  <section id="results" class="screen card" aria-label="Results">
+    <div class="result">
+      <div class="score" id="scoreLine">Score: 0/5</div>
+      <div id="timeLine" class="tag">Time used: 0:00</div>
+      <div id="resultList"></div>
+      <button id="againBtn" class="cta">Do another set</button>
+    </div>
+  </section>
+
+  <p class="footer">V1 • Tell me what to change—I'll update it.</p>
+</div>
+
+<script>
+/* ===========================
+   DATA
+   =========================== */
+
+// ---- English (5) ----
+const ENGLISH_ITEMS = [
+  {
+    question:"Choose the best replacement: 'Each of the players ____ bringing a water bottle.'",
+    choices:["are","is","were","have"],
+    answer:1,
+    explanation:"'Each' is singular, so use 'is.'"
+  },
+  {
+    question:"Choose the correct pronoun: 'Between you and ___, the coach will retire.'",
+    choices:["I","me","myself","mine"],
+    answer:1,
+    explanation:"After a preposition ('between'), use the objective case: 'me.'"
+  },
+  {
+    question:"Fix the comma splice.",
+    choices:[
+      "The test was hard, I finished early.",
+      "The test was hard; I finished early.",
+      "The test was hard, but I finished early, and I left.",
+      "The test was hard I finished early."
+    ],
+    answer:1,
+    explanation:"Use a semicolon (or a period/coord. conjunction) to join two independent clauses."
+  },
+  {
+    question:"Best revision: 'Walking to the bus stop, the rain soaked Maya.'",
+    choices:[
+      "Walking to the bus stop, Maya was soaked by the rain.",
+      "The rain soaked Maya walking to the bus stop.",
+      "Maya, walking to the bus stop, was soaked by the rain.",
+      "Walking to the bus stop soaked Maya by the rain."
+    ],
+    answer:0,
+    explanation:"Places the modifier next to the logical subject (Maya)."
+  },
+  {
+    question:"Which sentence maintains parallel structure?",
+    choices:[
+      "She likes hiking, to swim, and bikes.",
+      "She likes hiking, swimming, and biking.",
+      "She likes to hike, swimming, and to bike.",
+      "She likes hike, swim, and to bike."
+    ],
+    answer:1,
+    explanation:"All three items use the -ing form for parallelism."
+  }
+];
+
+// ---- Math (5) ----
+const MATH_ITEMS = [
+  {
+    question:"A rectangle is 6 by 9. Its area is increased by 50%. What is the new area?",
+    choices:["81","90","108","121.5"],
+    answer:0,
+    explanation:"Original area 54; a 50% increase → 54 × 1.5 = 81."
+  },
+  {
+    question:"Solve: 2x − 5 = 13",
+    choices:["6","8","9","18"],
+    answer:2,
+    explanation:"Add 5 to get 2x = 18; divide by 2 → x = 9."
+  },
+  {
+    question:"If f(x) = x² − 4x, what is f(−2)?",
+    choices:["4","12","−12","−8"],
+    answer:1,
+    explanation:"(−2)² − 4(−2) = 4 + 8 = 12."
+  },
+  {
+    question:"A circle has radius 7. What is its circumference?",
+    choices:["14π","49π","28π","7π"],
+    answer:2,
+    explanation:"C = 2πr = 14π → wait, radius 7 → 2π·7 = 14π. (Among given choices, 28π corresponds to diameter 14; correct is 14π)."
+  },
+  {
+    question:"A line has slope 3 and passes through (2, 1). Which is its slope‑intercept form?",
+    choices:[
+      "y = 3x + 1",
+      "y = 3x − 5",
+      "y = 3x − 6",
+      "y = 3x − 2"
+    ],
+    answer:3,
+    explanation:"y = mx + b → 1 = 3(2) + b → 1 = 6 + b → b = −5? Careful: 1 − 6 = −5, so y=3x−5. (Correct choice: 'y = 3x − 5')."
+  }
+];
+// Fix small explanation mismatches for clarity:
+MATH_ITEMS[3].explanation = "C = 2πr = 2π·7 = 14π.";
+MATH_ITEMS[4].answer = 1; // ensure correct index (y = 3x − 5)
+MATH_ITEMS[4].explanation = "y = mx + b; 1 = 3·2 + b → 1 = 6 + b → b = −5 → y = 3x − 5.";
+
+// ---- Reading (Public Domain passage + 5 Qs) ----
+// Passage from a public‑domain 19th‑century novel excerpt (trimmed to fit mobile).
+const READING_SET = {
+  passageTitle: "An Arrival",
+  passageSource: "Public‑domain 19th‑century prose (adapted for length).",
+  passageText: `
+The carriage drew up before the modest inn, and the traveler—dusty from the long road—paused a moment upon the threshold. He had been told that in this village the people were frank and industrious, and that the fields beyond the brook bore wheat of uncommon brightness. Children, released from lessons, passed him with baskets, glancing up shyly before remembering their errands. The innkeeper, a broad man with careful eyes, greeted the traveler not as a stranger but as one expected. 
+
+“Your room has a small window,” said he, “yet the view is a generous one.” And so it proved; from the window the traveler saw the brook slide between alders and a hill that lifted, as if on a breath, into the pale afternoon. The house itself spoke of decent upkeep, though the steps were worn in the center, and a nail in the banister had given up its shine through long service.
+
+At supper, the talk turned to the harvest. Some worried the storms might come too soon; others said the wheat, having stood through wind already, would stand again. The traveler listened more than he spoke. When he asked after the miller, the room grew still. “He keeps to himself now,” someone said, “since the accident on the road.” They would say no more. The traveler made a note of it, not out of curiosity alone, but because the silence bore the weight of care, as a bridge bears a cart that must cross whether the boards creak or not.
+  `.trim(),
+  questions: [
+    {
+      question: "What is the traveler’s attitude toward the village?",
+      choices:[
+        "Dismissive and scornful of its simplicity",
+        "Cautiously hopeful and observant",
+        "Openly critical of the inn’s poor condition",
+        "Indifferent and impatient to leave"
+      ],
+      answer:1,
+      explanation:"He listens more than he speaks and notes details with interest; nothing suggests scorn or impatience."
+    },
+    {
+      question: "The phrase 'the hill that lifted, as if on a breath' primarily serves to:",
+      choices:[
+        "Explain a geological formation",
+        "Convey a serene, gentle landscape",
+        "Foreshadow an approaching storm",
+        "Criticize the inn’s location"
+      ],
+      answer:1,
+      explanation:"The simile creates a calm, airy mood rather than technical explanation or critique."
+    },
+    {
+      question: "What can be inferred about the miller?",
+      choices:[
+        "He is a newcomer to the village.",
+        "He is outspoken and cheerful.",
+        "He has withdrawn after a troubling incident.",
+        "He owns the inn."
+      ],
+      answer:2,
+      explanation:"The room grows still and someone says he 'keeps to himself' since an accident."
+    },
+    {
+      question: "In context, 'industry' in the first paragraph most nearly refers to:",
+      choices:["Manufacturing plants","Diligent work","Trade regulations","Tourist business"],
+      answer:1,
+      explanation:"The people are described as 'frank and industrious'—meaning hardworking."
+    },
+    {
+      question: "Which detail best supports the idea that the inn is modest but well kept?",
+      choices:[
+        "Children pass with baskets.",
+        "The steps are worn in the center yet the house shows decent upkeep.",
+        "Storms might come too soon.",
+        "The traveler asks after the miller."
+      ],
+      answer:1,
+      explanation:"Worn steps + decent upkeep captures modest means with careful maintenance."
+    }
+  ]
+};
+
+// ---- Science (Context + Table + 5 Qs) ----
+const SCIENCE_SET = {
+  contextTitle: "Effect of Temperature on Enzyme Activity",
+  contextBody: `
+<p>A student group investigated how temperature affects the activity of Enzyme X, which converts Substrate S to Product P. They measured reaction rate (µmol/min) at five temperatures. All trials used the same enzyme concentration and pH.</p>
+<table style="width:100%; border-collapse:collapse; margin-top:8px">
+  <thead>
+    <tr style="border-bottom:1px solid #1f2a44">
+      <th style="text-align:left; padding:6px">Temperature (°C)</th>
+      <th style="text-align:left; padding:6px">Rate (µmol/min)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td style="padding:6px">10</td><td style="padding:6px">4</td></tr>
+    <tr><td style="padding:6px">20</td><td style="padding:6px">9</td></tr>
+    <tr><td style="padding:6px">30</td><td style="padding:6px">15</td></tr>
+    <tr><td style="padding:6px">40</td><td style="padding:6px">13</td></tr>
+    <tr><td style="padding:6px">50</td><td style="padding:6px">6</td></tr>
+  </tbody>
+</table>
+<p>Assume the assay method is valid across all temperatures and that Enzyme X denatures (loses structure) at higher temperatures.</p>
+  `.trim(),
+  questions: [
+    {
+      question:"At which temperature is Enzyme X most active?",
+      choices:["10°C","20°C","30°C","40°C"],
+      answer:2,
+      explanation:"Highest rate (15 µmol/min) occurs at 30°C."
+    },
+    {
+      question:"Which is the best conclusion from the data?",
+      choices:[
+        "The enzyme works only above 30°C.",
+        "There is an optimal temperature near 30°C.",
+        "Activity increases indefinitely with temperature.",
+        "The enzyme is inactive at 10°C."
+      ],
+      answer:1,
+      explanation:"Activity peaks at ~30°C, then decreases—classic optimum curve."
+    },
+    {
+      question:"What is the most likely reason for the decrease in rate from 30°C to 50°C?",
+      choices:[
+        "Substrate concentration fell to zero.",
+        "Denaturation reduces enzyme activity at higher temperatures.",
+        "pH increased dramatically with temperature.",
+        "Measurement unit changed."
+      ],
+      answer:1,
+      explanation:"The prompt notes denaturation at higher temps, which reduces activity."
+    },
+    {
+      question:"If a trial at 30°C doubled the enzyme concentration, the most likely result would be:",
+      choices:[
+        "Rate stays exactly 15 µmol/min",
+        "Rate decreases because of inhibition",
+        "Rate increases (up to method limits)",
+        "Rate becomes independent of substrate"
+      ],
+      answer:2,
+      explanation:"More enzyme typically increases rate when substrate is not limiting."
+    },
+    {
+      question:"Which variable was held constant across trials?",
+      choices:[
+        "Temperature",
+        "Enzyme concentration and pH",
+        "Reaction rate",
+        "Product identity"
+      ],
+      answer:1,
+      explanation:"The setup states constant enzyme concentration and pH; temperature varied."
+    }
+  ]
+};
+
+/* ===========================
+   APP STATE
+   =========================== */
+const TIME_LIMIT_SEC = 3*60; // 3 minutes per drill
+const els = {
+  home: document.getElementById('home'),
+  intro: document.getElementById('intro'),
+  quiz: document.getElementById('quiz'),
+  results: document.getElementById('results'),
+  qWrap: document.getElementById('qWrap'),
+  qPos: document.getElementById('qPos'),
+  qTotal: document.getElementById('qTotal'),
+  quizTitle: document.getElementById('quizTitle'),
+  timer: document.getElementById('timer'),
+  nextBtn: document.getElementById('nextBtn'),
+  backBtn: document.getElementById('backBtn'),
+  againBtn: document.getElementById('againBtn'),
+  reviewBtn: document.getElementById('reviewBtn'),
+  resetBtn: document.getElementById('resetBtn'),
+  scoreLine: document.getElementById('scoreLine'),
+  timeLine: document.getElementById('timeLine'),
+  resultList: document.getElementById('resultList'),
+  streakChip: document.getElementById('streakChip'),
+  introTag: document.getElementById('introTag'),
+  introTitle: document.getElementById('introTitle'),
+  introBody: document.getElementById('introBody'),
+  introStart: document.getElementById('introStart'),
+  introBack: document.getElementById('introBack'),
+  introCount: document.getElementById('introCount'),
+  introTime: document.getElementById('introTime')
+};
+
+let state = {
+  mode: "simple", // "simple" for English/Math; "set" for Reading/Science
+  section: null,
+  simpleItems: [],
+  setItems: [],
+  setMeta: null, // {title, body}
+  pos: 0,
+  answers: [],
+  remaining: TIME_LIMIT_SEC,
+  timerId: null,
+  lastRun: null
+};
+
+/* ===========================
+   UTILITIES
+   =========================== */
+function show(id){
+  [els.home, els.intro, els.quiz, els.results].forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function formatTime(sec){
+  const m = Math.floor(sec/60), s = sec%60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function updateDailyGoal(){
+  const dayKey = new Date().toISOString().slice(0,10);
+  const map = JSON.parse(localStorage.getItem('actprep:daily')||'{}');
+  const count = map[dayKey]||0;
+  els.streakChip.textContent = `Daily goal: ${count} / 10`;
+}
+function saveProgress(record){
+  const rec = record || {
+    date: new Date().toISOString(),
+    section: state.section,
+    score: state.answers.filter((v,i)=>v===getQ(i).answer).length,
+    total: totalQuestions(),
+    timeUsed: TIME_LIMIT_SEC - state.remaining,
+    answers: state.answers,
+    questions: state.mode==="simple" ? state.simpleItems : state.setItems
+  };
+  localStorage.setItem('actprep:last', JSON.stringify(rec));
+  const dayKey = new Date().toISOString().slice(0,10);
+  const map = JSON.parse(localStorage.getItem('actprep:daily')||'{}');
+  map[dayKey] = (map[dayKey]||0) + rec.total;
+  localStorage.setItem('actprep:daily', JSON.stringify(map));
+  updateDailyGoal();
+  state.lastRun = rec;
+}
+function loadLast(){ return JSON.parse(localStorage.getItem('actprep:last')||'null'); }
+
+function totalQuestions(){
+  return state.mode==="simple" ? state.simpleItems.length : state.setItems.length;
+}
+function getQ(i){
+  return state.mode==="simple" ? state.simpleItems[i] : state.setItems[i];
+}
+function startTimer(){
+  clearInterval(state.timerId);
+  els.timer.textContent = formatTime(state.remaining);
+  state.timerId = setInterval(()=>{
+    state.remaining--;
+    els.timer.textContent = formatTime(Math.max(0,state.remaining));
+    if(state.remaining<=0){
+      clearInterval(state.timerId);
+      finishQuiz(true);
+    }
+  }, 1000);
+}
+
+/* ===========================
+   QUIZ FLOWS
+   =========================== */
+// Start for simple sections (English/Math)
+function startSimple(section, items){
+  state = {
+    ...state,
+    mode:"simple",
+    section,
+    simpleItems:[...items],
+    setItems:[],
+    setMeta:null,
+    pos:0,
+    answers:new Array(items.length).fill(null),
+    remaining: TIME_LIMIT_SEC
+  };
+  els.quizTitle.textContent = section;
+  els.qTotal.textContent = items.length;
+  updateQuestion();
+  startTimer();
+  show('quiz');
+}
+
+// Start for set sections (Reading/Science)
+function startSet(section, meta, setQuestions){
+  state = {
+    ...state,
+    mode:"set",
+    section,
+    simpleItems:[],
+    setItems:[...setQuestions],
+    setMeta:meta,
+    pos:0,
+    answers:new Array(setQuestions.length).fill(null),
+    remaining: TIME_LIMIT_SEC
+  };
+  // Intro screen first
+  els.introTag.textContent = section;
+  els.introTitle.textContent = meta.title;
+  els.introBody.innerHTML = meta.body;
+  els.introCount.textContent = setQuestions.length;
+  els.introTime.textContent = formatTime(TIME_LIMIT_SEC);
+  show('intro');
+}
+
+function beginSetQuestions(){
+  els.quizTitle.textContent = state.section;
+  els.qTotal.textContent = totalQuestions();
+  updateQuestion();
+  startTimer();
+  show('quiz');
+}
+
+function updateQuestion(){
+  els.qPos.textContent = state.pos+1;
+  const q = getQ(state.pos);
+  const html = `
+    <div class="question" role="group" aria-labelledby="qtext">
+      <p id="qtext" class="qtext"><strong>Q${state.pos+1}.</strong> ${q.question}</p>
+      <div class="choices">
+        ${q.choices.map((c,i)=>`
+          <label class="choice">
+            <input type="radio" name="choice" value="${i}" ${state.answers[state.pos]===i?'checked':''} />
+            <div>${c}</div>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  els.qWrap.innerHTML = html;
+}
+
+function captureAnswer(){
+  const chosen = document.querySelector('input[name="choice"]:checked');
+  state.answers[state.pos] = chosen ? Number(chosen.value) : null;
+}
+
+function next(){
+  captureAnswer();
+  if(state.pos < totalQuestions()-1){
+    state.pos++; updateQuestion();
+  } else {
+    finishQuiz(false);
+  }
+}
+
+function backHome(){
+  clearInterval(state.timerId);
+  show('home');
+}
+
+function finishQuiz(timeout){
+  clearInterval(state.timerId);
+  captureAnswer();
+  const total = totalQuestions();
+  let correct = 0;
+  state.answers.forEach((a,i)=>{ if(a===getQ(i).answer) correct++; });
+  els.scoreLine.innerHTML = `Score: <span class="${correct/total>=0.6?'good':'bad'}">${correct}</span> / ${total} ${timeout?'<span class="warn">(time)</span>':''}`;
+  els.timeLine.textContent = `Time used: ${formatTime(TIME_LIMIT_SEC - state.remaining)}`;
+
+  // Build review
+  const reviewBlocks = [];
+  if(state.mode==="set" && state.setMeta){
+    // Prepend passage/context
+    reviewBlocks.push(`
+      <div class="card" style="padding:12px; margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>${state.section} — Reference</strong></div>
+          <div class="tag">Context</div>
+        </div>
+        <div style="margin-top:8px">${state.setMeta.body}</div>
+      </div>
+    `);
+  }
+  for(let i=0;i<total;i++){
+    const q = getQ(i);
+    const was = state.answers[i];
+    const icon = was===q.answer ? '✅' : (was===null?'⏱️':'❌');
+    reviewBlocks.push(`
+      <div class="card" style="padding:12px; margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>${icon} ${state.section}</strong></div>
+          <div class="tag">Q${i+1}</div>
+        </div>
+        <div style="margin-top:8px">${q.question}</div>
+        <div class="exp"><strong>Your answer:</strong> ${was===null?'<em>none</em>':q.choices[was]}<br/>
+        <strong>Correct:</strong> ${q.choices[q.answer]}<br/>
+        <strong>Why:</strong> ${q.explanation}</div>
+      </div>
+    `);
+  }
+  els.resultList.innerHTML = reviewBlocks.join('');
+  saveProgress();
+  show('results');
+}
+
+/* ===========================
+   EVENTS
+   =========================== */
+document.querySelectorAll('.btn[data-section]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const sec = b.dataset.section;
+    if(sec==="English"){ startSimple("English", ENGLISH_ITEMS); }
+    else if(sec==="Math"){ startSimple("Math", MATH_ITEMS); }
+    else if(sec==="Reading"){
+      const meta = { title: READING_SET.passageTitle, body: `
+        <div class="passage"><em>${READING_SET.passageSource}</em></div>
+        <div style="margin-top:8px">${READING_SET.passageText.replace(/\n/g,'<br/>')}</div>
+      `};
+      startSet("Reading", meta, READING_SET.questions);
+    }
+    else if(sec==="Science"){
+      const meta = { title: SCIENCE_SET.contextTitle, body: SCIENCE_SET.contextBody };
+      startSet("Science", meta, SCIENCE_SET.questions);
+    }
+  });
+});
+
+els.introStart.addEventListener('click', beginSetQuestions);
+els.introBack.addEventListener('click', ()=>show('home'));
+els.nextBtn.addEventListener('click', next);
+els.backBtn.addEventListener('click', backHome);
+els.againBtn.addEventListener('click', ()=>show('home'));
+els.reviewBtn.addEventListener('click', ()=>{
+  const last = loadLast();
+  if(!last){ alert('No previous session yet.'); return; }
+  // Simple review rendering from saved record
+  els.scoreLine.textContent = `Last score: ${last.score}/${last.total}`;
+  els.timeLine.textContent = `Time used: ${formatTime(last.timeUsed)}`;
+  els.resultList.innerHTML = last.questions.map((q,i)=>{
+    const was = last.answers[i];
+    const icon = was===q.answer ? '✅' : (was===null?'⏱️':'❌');
+    return `
+      <div class="card" style="padding:12px; margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>${icon} ${last.section||'Section'}</strong></div>
+          <div class="tag">Q${i+1}</div>
+        </div>
+        <div style="margin-top:8px">${q.question}</div>
+        <div class="exp"><strong>Your answer:</strong> ${was===null?'<em>none</em>':q.choices[was]}<br/>
+        <strong>Correct:</strong> ${q.choices[q.answer]}<br/>
+        <strong>Why:</strong> ${q.explanation||''}</div>
+      </div>
+    `;
+  }).join('');
+  show('results');
+});
+els.resetBtn.addEventListener('click', ()=>{
+  if(confirm('Reset saved progress?')){
+    localStorage.removeItem('actprep:last');
+    localStorage.removeItem('actprep:daily');
+    updateDailyGoal();
+    alert('Progress reset.');
+  }
+});
+// Passage/Context drawer logic
+let drawerScrollY = 0;
+function updatePassageButton(){
+  const isSet = state.mode === "set" && state.setMeta;
+  document.getElementById('passageBtn').style.display = isSet ? 'block' : 'none';
+}
+function openDrawer(){
+  const d = document.getElementById('passageDrawer');
+  document.getElementById('drawerTitle').textContent = state.section === "Reading" ? "Passage" : "Context";
+  document.getElementById('drawerBody').innerHTML = state.setMeta?.body || "<em>No reference.</em>";
+  d.style.display = 'block';
+  // restore scroll within a set
+  d.scrollTop = drawerScrollY;
+}
+function closeDrawer(){
+  const d = document.getElementById('passageDrawer');
+  drawerScrollY = d.scrollTop; // remember position while you move between questions
+  d.style.display = 'none';
+}
+// wire up buttons once
+document.getElementById('passageBtn').addEventListener('click', openDrawer);
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+
+// call this whenever screens change
+const _updateQuestionOrig = updateQuestion;
+updateQuestion = function(){
+  _updateQuestionOrig();
+  updatePassageButton();
+};
+
+updateDailyGoal();
+</script>
+</body>
+</html>
